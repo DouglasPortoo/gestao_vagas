@@ -14,7 +14,7 @@ public class CreateCandidateUseCase {
   @Autowired
   private CandidateRepository candidateRepository;
 
- @Autowired
+  @Autowired
   private PasswordEncoder passwordEncoder;
 
   public CandidateEntity execute(CandidateEntity candidateEntity) {
@@ -23,19 +23,9 @@ public class CreateCandidateUseCase {
           throw new UserFoundExceptions();
         });
 
-        var encodedPassword  = passwordEncoder.encode(candidateEntity.getPassword());
-      candidateEntity.setPassword(encodedPassword );
+    var encodedPassword = passwordEncoder.encode(candidateEntity.getPassword());
+    candidateEntity.setPassword(encodedPassword);
 
     return this.candidateRepository.save(candidateEntity);
   }
 }
-
-/*
- * LANÇANDO EXCEÇÃO
- * 
- * CHAMA O REPOSITORY
- * 
- * if (checkUserExists.length > 0) {
- * throw new Error("Este e-mail já está em uso.");
- * }
- */
