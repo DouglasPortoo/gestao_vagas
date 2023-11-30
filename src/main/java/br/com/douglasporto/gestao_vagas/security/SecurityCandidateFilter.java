@@ -9,17 +9,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import br.com.douglasporto.gestao_vagas.providers.JWTProvider;
+import br.com.douglasporto.gestao_vagas.providers.JWTCandidateProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class SecurityFilter extends OncePerRequestFilter {
+public class SecurityCandidateFilter extends OncePerRequestFilter {
 
   @Autowired
-  private JWTProvider jwtProvider;
+  private JWTCandidateProvider jwtCandidateProvider;
 
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -28,19 +28,18 @@ public class SecurityFilter extends OncePerRequestFilter {
     // SecurityContextHolder.getContext().setAuthentication(null);
     String header = request.getHeader("Authorization");
 
-    if (request.getRequestURI().startsWith("/company")) {
+    if (request.getRequestURI().startsWith("/candidate")) {
       if (header != null) {
-        var token = this.jwtProvider.valideteToken(header);
+        var token = jwtCandidateProvider.validateToken(header);
 
         if (token == null) {
           response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
           return;
         }
-
+        request.setAttribute("candidate_id", token.getSubject());
         var roles = token.getClaim("roles").asList(Object.class);
-        var grants = roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.toString())).toList();
 
-        request.setAttribute("company_id", token.getSubject());
+        var grants = roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.toString().toUpperCase())).toList();
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(token.getSubject(), null,
             grants);
@@ -53,12 +52,3 @@ public class SecurityFilter extends OncePerRequestFilter {
   }
 
 }
-
-/*
- * req.user = {
- * id: Number(user_id),
- * role,
- * }
- * 
- * return next()
- */

@@ -1,23 +1,39 @@
 package br.com.douglasporto.gestao_vagas.modules.candidate.controllers;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.douglasporto.gestao_vagas.modules.candidate.dto.ProfileCandidateDTO;
 import br.com.douglasporto.gestao_vagas.modules.candidate.entities.CandidateEntity;
+import br.com.douglasporto.gestao_vagas.modules.candidate.useCases.AplyJobCandidateUseCase;
 import br.com.douglasporto.gestao_vagas.modules.candidate.useCases.CreateCandidateUseCase;
+import br.com.douglasporto.gestao_vagas.modules.candidate.useCases.ListAllJobsByFilterUseCase;
 import br.com.douglasporto.gestao_vagas.modules.candidate.useCases.ProfileCandidateUseCase;
+import br.com.douglasporto.gestao_vagas.modules.company.entities.JobEntity;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/candidate")
+@Tag(name = "Candidato", description = "Informações do candidato")
 public class CandidateController {
 
   @Autowired
@@ -26,7 +42,24 @@ public class CandidateController {
   @Autowired
   private ProfileCandidateUseCase profileCandidateUseCase;
 
+  @Autowired
+  private ListAllJobsByFilterUseCase listAllJobsByFilterUseCase;
+
+  @Autowired
+  private AplyJobCandidateUseCase aplyJobCandidateUseCase;
+
   @PostMapping("/")
+  @PreAuthorize("hasRole('CANDIDATE')")
+
+  @Tag(name = "Candidato", description = "Informações do candidato")
+  @Operation(summary = "Cadastro de candidato", description = "Essa função é responsável por cadastrar um candidato")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", content = {
+          @Content(schema = @Schema(implementation = CandidateEntity.class))
+      }),
+      @ApiResponse(responseCode = "400", description = "Usuário já existe")
+  })
+
   public ResponseEntity<Object> create(@Valid @RequestBody CandidateEntity candidateEntity) {
     try {
       var result = createCandidateUseCase.execute(candidateEntity);
@@ -38,45 +71,62 @@ public class CandidateController {
   }
 
   @GetMapping("/")
-  public ResponseEntity<Object> get(HttpServletRequest request){
+  @PreAuthorize("hasRole('CANDIDATE')")
 
-    var candidateId = request.getAttribute("candidate_id")
-  try {
+  @Operation(summary = "Perfil do candidato", description = "Essa função é responsável por buscar as informações do perfil do candidato")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", content = {
+          @Content(schema = @Schema(implementation = ProfileCandidateDTO.class))
+      }),
+      @ApiResponse(responseCode = "400", description = "User not found")
+  })
+  @SecurityRequirement(name = "jwt_auth")
+
+  public ResponseEntity<Object> get(HttpServletRequest request) {
+
+    var candidateId = request.getAttribute("candidate_id");
+    try {
       var profile = this.profileCandidateUseCase.execute(UUID.fromString(candidateId.toString()));
-  return ResponseEntity.ok().body(profile);
+      return ResponseEntity.ok().body(profile);
     } catch (Exception e) {
       return ResponseEntity.badRequest().body(e.getMessage());
     }
   }
-}
 
-/*
- * const knex = require("../database/knex");
- * const { hash } = require("bcryptjs");
- * 
- * class UsersController {
- * async create(request, response) {
- * const { name, email, password } = request.body;
- * 
- * try {
- * const checkUserExists = await knex("users").where({ email });
- * 
- * if (checkUserExists.length > 0) {
- * throw new Error("Este e-mail já está em uso.");
- * }
- * 
- * const hashedPassword = await hash(password, 8);
- * 
- * await knex("users").insert({ name, email, password: hashedPassword });
- * 
- * return response.status(201).json("Usuario criado com sucesso.");
- * } catch (error) {
- * if (error instanceof Error) {
- * return response.status(400).json({ message: error.message })
- * }
- * }
- * }
- * }
- * 
- * module.exports = UsersController;
- */
+  @GetMapping("/job")
+  @PreAuthorize("hasRole('CANDIDATE')")
+
+  @Operation(summary = "Listagem de vagas disponível para o candidato", description = "Essa função é responsável por listar todas as vagas disponíveis, baseada no filtro")
+
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", content = {
+          @Content(array = @ArraySchema(schema = @Schema(implementation = JobEntity.class)))
+      })
+  })
+
+  @SecurityRequirement(name = "jwt_auth")
+
+  public List<JobEntity> findJobByFilter(@RequestParam String filter) {
+    return this.listAllJobsByFilterUseCase.execute(filter);
+  }
+
+  @PostMapping("/job/apply")
+  @PreAuthorize("hasRole('CANDIDATE')")
+
+  @Operation(summary = "Inscrição do candidato para uma vaga", description = "Essa função é responsável por realizar a inscrição do candidato em uma vaga")
+
+  @SecurityRequirement(name = "jwt_auth")
+
+  public ResponseEntity<Object> applyjob(HttpServletRequest request, @RequestBody UUID idJob) {
+
+    var candidateId = request.getAttribute("candidate_id");
+    try {
+      var result = this.aplyJobCandidateUseCase.execute(UUID.fromString(candidateId.toString()), idJob);
+      return ResponseEntity.ok().body(result);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(e.getMessage());
+    }
+  }
+
+  
+}

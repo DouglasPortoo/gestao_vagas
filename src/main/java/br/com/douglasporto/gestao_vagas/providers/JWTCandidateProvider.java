@@ -9,12 +9,12 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 @Service
-public class JWTProvider {
+public class JWTCandidateProvider {
 
-  @Value("${security.token.secret}")
+  @Value("${security.token.secret.candidate}")
   private String secretkey;
 
-  public DecodedJWT valideteToken(String token) {
+  public DecodedJWT validateToken(String token){
     token = token.replace("Bearer ", "");
 
     Algorithm algorithm = Algorithm.HMAC256(secretkey);
@@ -22,17 +22,11 @@ public class JWTProvider {
     try {
       var tokenDecoded = JWT.require(algorithm).build().verify(token);
       return tokenDecoded;
-    } catch (JWTVerificationException ex) {
-      ex.printStackTrace();
+    } catch (JWTVerificationException e) {
+      e.printStackTrace();
       return null;
     }
+    
   }
 
 }
-
-/*
- * const [, token] = authHeader.cookie.split("token=");
- * 
- * const { role,sub: user_id } = verify(token, authConfig.secret)
- * 
- */

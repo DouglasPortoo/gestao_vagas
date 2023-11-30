@@ -12,13 +12,13 @@ import br.com.douglasporto.gestao_vagas.modules.company.dto.AuthcompanyDto;
 import br.com.douglasporto.gestao_vagas.modules.company.useCases.AuthCompanyUsecase;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/company")
 public class AuthCompanyController {
 
   @Autowired
   private AuthCompanyUsecase authCompanyUsecase;
 
-  @PostMapping("/company")
+  @PostMapping("/auth")
   public ResponseEntity<Object> create(@RequestBody AuthcompanyDto authcompanyDto) {
     try {
       var result = this.authCompanyUsecase.execute(authcompanyDto);

@@ -46,7 +46,7 @@ public class AuthCandidateUseCase {
 
     Algorithm algorithm = Algorithm.HMAC256(secretkey);
     var token = JWT.create().withIssuer("javagas").withSubject(candidate.getId().toString())
-        .withClaim("roles", Arrays.asList("candidate"))
+        .withClaim("roles", Arrays.asList("CANDIDATE"))
         .withExpiresAt(Instant.now().plus(java.time.Duration.ofMinutes(10))).sign(algorithm);
 
     var AuthCandidateResponse = AuthCandidateResponseDTO.builder().acess_token(token).build();
